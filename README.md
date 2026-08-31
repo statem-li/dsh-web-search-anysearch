@@ -52,6 +52,12 @@ src/
 需要的能力以叶子模块内联。构建末尾的守卫（`build.mjs` 的 `assertHostExternals`）会
 在产物残留未验证的裸导入时**直接让构建失败**。
 
+**给扩展者的坑（已踩实）**：自制 schema 的 `toJSON()` 必须输出 schemastery 的
+`{ uid, refs }` 序列化契约（内层节点序列化为数字 uid 并在 `refs` 注册）。浏览器端
+ui-settings 用 `new Schema(描述符.schema)` rehydrate + 校验，失败则命名空间永远停在
+`status: 'unavailable'`——**设置卡整个消失，且无任何报错**。`scripts/smoke-host.mjs`
+的「client rehydration contract」断言防此回归。
+
 ### 已知取舍（不修复）
 
 - `web_search` 失败时工具结果携带完整人类可读 message，但**结构化 error info

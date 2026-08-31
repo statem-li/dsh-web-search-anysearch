@@ -157,6 +157,33 @@ function makeCtx({ credentials, userSection = {} } = {}) {
       try { schema({ maxResults: 'NaN' }) } catch { threw = true }
       if (!threw) fail('schema must reject a non-integer maxResults')
       else pass('schema rejects non-integer maxResults')
+
+      // ── schemastery serialization contract (the browser rehydrates it) ──
+      // ui-settings marks a bound namespace `ready` only when
+      // `new Schema(descriptor.schema)` rehydrates and validates; a foreign
+      // envelope silently leaves the card `unavailable`. Guard the shape here.
+      try {
+        const envelope = schema.toJSON()
+        const okEnvelope = (typeof envelope === 'object' && envelope !== null)
+          && typeof envelope.uid === 'number'
+          && typeof envelope.refs === 'object' && envelope.refs !== null
+        if (!okEnvelope) {
+          fail(`schema.toJSON() must be the { uid, refs } envelope, got ${JSON.stringify(envelope)?.slice(0, 120)}`)
+        } else {
+          const refs = envelope.refs
+          const root = refs[String(envelope.uid)]
+          if (root?.type !== 'object' || typeof root.dict !== 'object' || root.dict === null) {
+            fail(`schema root ref must be { type: 'object', dict }, got ${JSON.stringify(root)?.slice(0, 120)}`)
+          } else {
+            const bad = Object.entries(root.dict).filter(([field, uid]) =>
+              !Number.isInteger(uid) || refs[String(uid)] === undefined || refs[String(uid)].type === undefined)
+            if (bad.length > 0) fail(`schema refs must resolve every dict entry: ${JSON.stringify(bad)}`)
+            else pass('schema.toJSON() emits a resolvable { uid, refs } envelope (client rehydration contract)')
+          }
+        }
+      } catch (error) {
+        fail(`schema.toJSON() threw: ${error?.stack ?? error}`)
+      }
     } catch (error) {
       fail(`schema evaluation threw: ${error?.stack ?? error}`)
     }

@@ -128,15 +128,32 @@ export function sectionSchema<T extends Record<string, unknown>>(
   }) as SectionSchema<T>
   schema.type = 'object'
   schema.dict = nodes
-  schema.toJSON = () => ({
-    type: 'object',
-    dict: Object.fromEntries(
-      Object.entries(nodes).map(([field, node]) => [
-        field,
-        { type: node.type, ...(node.meta === undefined ? {} : { meta: node.meta }) },
-      ]),
-    ),
-  })
+  schema.toJSON = () => {
+    // Schemastery reference envelope — the REAL serialization contract:
+    // `{ uid, refs }` where inner nodes appear as numeric uids in the root
+    // `dict` and every uid lands in `refs` (see schemastery
+    // `Schema.prototype.toJSON`).
+    //
+    // This is mandatory: the browser half of ui-settings rehydrates the
+    // descriptor's `schema` with `new Schema(serialized)` and marks the bound
+    // namespace `ready` only when rehydration + validation succeed. A foreign
+    // envelope silently leaves the scope `status: 'unavailable'` and the
+    // settings card renders nothing (exactly the bug this comment guards).
+    const rootUid = 1
+    const refs: Record<string, unknown> = {}
+    const dict: Record<string, unknown> = {}
+    let nextUid = rootUid + 1
+    for (const [field, node] of Object.entries(nodes)) {
+      const uid = nextUid++
+      refs[String(uid)] = {
+        type: node.type,
+        ...(node.meta === undefined ? {} : { meta: node.meta }),
+      }
+      dict[field] = uid
+    }
+    refs[String(rootUid)] = { type: 'object', dict }
+    return { uid: rootUid, refs }
+  }
   return schema
 }
 
