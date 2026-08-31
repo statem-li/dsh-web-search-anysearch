@@ -1,0 +1,5 @@
+# Windows 检出会把 LF 转成 CRLF，导致安装副本与本地构建的 md5 对不上。
+# 构建产物强制 LF；source map 视为二进制（避免换行转换破坏 mapping）。
+lib/*.js   text eol=lf
+lib/*.map  -text
+*          text=auto

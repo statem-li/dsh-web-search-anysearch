@@ -1,0 +1,11 @@
+# dsh-web-search-anysearch bundle patch — applied automatically when this
+# package is added to a profile with `dsh plugin add`. Do not edit by hand;
+# override from the profile's own cordis.patch.yml (a later layer) instead.
+
+# 本插件不占任何内核座位：host 只向 ctx.web 注册 id=anysearch 的搜索提供者并
+# 注册自己的设置命名空间 web-search-anysearch（与被卸载的 dsh-webui 同名，
+# 旧设置文档无缝延续）；client 走 settings.plugin.item 键槽（key =
+# web-search-anysearch，与内置 DeepSeek 卡的 key=web-search-deepseek 无冲突）。
+- insert:
+    - id: dsh-web-search-anysearch
+      name: dsh-web-search-anysearch
